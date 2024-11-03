@@ -1,0 +1,500 @@
+---
+title: "DAP2 PSET 4, Juan Ulloa"
+format: 
+  pdf:
+    keep-tex: true
+    include-in-header: 
+       text: |
+         \usepackage{fvextra}
+         \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+include-before-body:
+  text: |
+    \RecustomVerbatimEnvironment{verbatim}{Verbatim}{
+      showspaces = false,
+      showtabs = false,
+      breaksymbolleft={},
+      breaklines
+    }
+---
+
+**PS4:** Due Sat Nov 2 at 5:00PM Central. Worth 100 points. 
+We use (`*`) to indicate a problem that we think might be time consuming. 
+    
+## Style Points (10 pts) 
+Please refer to the minilesson on code style
+**[here](https://uchicago.zoom.us/rec/share/pG_wQ-pHTQrJTmqNn4rcrw5V194M2H2s-2jdy8oVhWHkd_yZt9o162IWurpA-fxU.BIQlSgZLRYctvzp-)**.
+
+## Submission Steps (10 pts)
+1. This problem set is a paired problem set.
+2. Play paper, scissors, rock to determine who goes first. Call that person *Partner 1*.
+    - Partner 1 (name and cnet ID):
+    - Partner 2 (name and cnet ID):
+3. Partner 1 will accept the `ps4` and then share the link it creates with their partner. You can only share it with one partner so you will not be able to change it after your partner has accepted. 
+4. "This submission is our work alone and complies with the 30538 integrity policy." Add your initials to indicate your agreement: 
+JMU
+5. "I have uploaded the names of anyone else other than my partner and I worked with on the problem set **[Will Sigal, Andy Fan](https://docs.google.com/forms/d/185usrCREQaUbvAXpWhChkjghdGgmAZXA3lPWpXLLsts/edit)**"  (1 point)
+6. Late coins used this pset: 3 Late coins left after submission: 1
+7. Knit your `ps4.qmd` to an PDF file to make `ps4.pdf`, 
+    * The PDF should not be more than 25 pages. Use `head()` and re-size figures when appropriate. 
+8. (Partner 1): push  `ps4.qmd` and `ps4.pdf` to your github repo.
+9. (Partner 1): submit `ps4.pdf` via Gradescope. Add your partner on Gradescope.
+10. (Partner 1): tag your submission in Gradescope
+
+**Important:** Repositories are for tracking code. **Do not commit the data or shapefiles to your repo.** The best way to do this is with `.gitignore`, which we have covered in class. If you do accidentally commit the data, Github has a [guide](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github#removing-files-from-a-repositorys-history). The best course of action depends on whether you have pushed yet. This also means that both partners will have to download the initial raw data and any data cleaning code will need to be re-run on both partners' computers. 
+
+## Download and explore the Provider of Services (POS) file (10 pts)
+
+```{python}
+# Import packages
+import pandas as pd
+import altair as alt
+import warnings
+import geopandas as gpd
+import matplotlib.pyplot as plt
+import time
+from shapely import Point
+
+warnings.filterwarnings("ignore")
+```
+
+1. 
+```{python}
+# Download 2016 data and print variables
+df_2016 = pd.read_csv("C:/Users/jmull/OneDrive/Documents/GitHub/DAP2-PSET4/pos2016.csv")
+variables = df_2016.columns.tolist()
+print(variables)
+```
+
+2. 
+    a. 
+```{python}
+# Subset data by short-term hospitlas
+df_2016_short_term = df_2016[(df_2016["PRVDR_CTGRY_CD"] == 1) & (df_2016["PRVDR_CTGRY_SBTYP_CD"] == 1)]
+
+# Count number of short-term hospitals
+number_short_term_hospitals = df_2016_short_term.shape[0]
+print(f"The number of short term hospitals in 2016 is {number_short_term_hospitals}.")
+```
+
+    b. Although our data has 7245 short-term hospitals in Q4 2016, an online source counts 4,661. The disparity may driven by the categorization in each data set. 
+
+    source: 
+    https://www.ahrq.gov/sites/default/files/wysiwyg/data/SyH-DR-stat-brief-3-financial-measures.pdf
+
+3. 
+
+```{python}
+# Problem 1.3 
+
+# Import data
+df_2017 = pd.read_csv("C:/Users/jmull/Downloads/pos2017.csv")
+df_2018 = pd.read_csv("C:/Users/jmull/Downloads/pos2018.csv", encoding = 'ISO-8859-1')
+df_2019 = pd.read_csv("C:/Users/jmull/Downloads/pos2019.csv", encoding = 'ISO-8859-1')
+
+# Fix column name in df_2019 (only error with downloading data, even ChatGPT couldn't help)
+df_2019.rename(columns={"ï»¿PRVDR_CTGRY_SBTYP_CD": "PRVDR_CTGRY_SBTYP_CD"}, inplace=True)
+
+# Subset data 
+df_2017_short_term = df_2017[(df_2017["PRVDR_CTGRY_CD"] == 1) & (df_2017["PRVDR_CTGRY_SBTYP_CD"] == 1)]
+df_2018_short_term = df_2018[(df_2018["PRVDR_CTGRY_CD"] == 1) & (df_2018["PRVDR_CTGRY_SBTYP_CD"] == 1)]
+df_2019_short_term = df_2019[(df_2019["PRVDR_CTGRY_CD"] == 1) & (df_2019["PRVDR_CTGRY_SBTYP_CD"] == 1)]
+
+# Count number of short-term hospitals
+number_short_term_2017 = df_2017_short_term.shape[0]
+number_short_term_2018 = df_2018_short_term.shape[0]
+number_short_term_2019 = df_2019_short_term.shape[0]
+
+print(f"The number of short term hospitals in 2017 is {number_short_term_2017}.")
+print(f"The number of short term hospitals in 2018 is {number_short_term_2018}.")
+print(f"The number of short term hospitals in 2019 is {number_short_term_2019}.")
+
+# Create a new year column in each data set
+df_2016_short_term.loc[:, "year"] = 2016
+df_2017_short_term.loc[:, "year"] = 2017
+df_2018_short_term.loc[:, "year"] = 2018
+df_2019_short_term.loc[:, "year"] = 2019
+
+# Append the four datasets together
+df_all = pd.concat([df_2016_short_term, df_2017_short_term, df_2018_short_term, df_2019_short_term], ignore_index = True)
+
+# Create a new dataframe with the number of observations per year
+df_obs_by_year = df_all.groupby("year").size().reset_index(name = 'count')
+
+# Plot number of observations by year
+obs_by_year_chart = alt.Chart(df_obs_by_year).mark_bar().encode(
+    alt.X('year:O', title = "", axis = alt.Axis(labelAngle = 0)),
+    alt.Y('count:Q', title = "", scale = alt.Scale(domain = [7000, 7400], clamp = True))
+).properties(
+    title = "Number of Hospital Observations by Year",
+    height = 400,
+    width = 500
+)
+
+obs_by_year_chart.show()
+```
+
+source:
+https://www.bing.com/search?pglt=41&q=clamp+in+altair&cvid=b95e7d304321423ab81eb05e004528a9&gs_lcrp=EgRlZGdlKgYIABBFGDkyBggAEEUYOdIBCDM2MThqMGoxqAIAsAIA&FORM=ANNTA1&PC=HCTS
+
+
+4. 
+    a. 
+```{python}
+# Create a new dataframe with the number of unique observations per year
+df_unique_obs_per_year = df_all.groupby("year")["PRVDR_NUM"].nunique().reset_index(name = 'count')
+
+# Plot number of unique observations by year
+unique_obs_by_year_chart = alt.Chart(df_unique_obs_per_year).mark_bar().encode(
+    alt.X('year:O', title = "", axis = alt.Axis(labelAngle = 0)),
+    alt.Y('count:Q', title = "", scale = alt.Scale(domain = [7000, 7400], clamp = True))
+).properties(
+    title = "Number of Unique Hospital Observations by Year",
+    height = 400,
+    width = 500
+)
+
+unique_obs_by_year_chart.show()
+```
+
+source:
+https://note.nkmk.me/en/python-pandas-value-counts/#pandasseriesnunique-pandasdataframenunique
+
+    b. The plots are identical, so each observation is unique. 
+
+## Identify hospital closures in POS file (15 pts) (*)
+
+1. 
+```{python}
+# Subset data for observations in 2016 that were still active
+active_2016 = df_all[(df_all['year'] == 2016) & (df_all["PGM_TRMNTN_CD"] == 0)]
+
+# Find which hospitals were active in the multi-year dataset and group them by their identifier
+active_all = df_all[df_all["PGM_TRMNTN_CD"] == 0].groupby("PRVDR_NUM")
+
+# Subset the active hospitals by year and find the latest year they were active
+latest_active_year = active_all["year"].max().reset_index()
+
+# Merge the 2016 active df with the latest active year df to get all the hospitals open in 2016 and when they were last open
+merged_df = pd.merge(active_2016, latest_active_year, how = "left", on = "PRVDR_NUM")
+
+# Rename the latest activity column and drop the year = 2016 column since it is redundant
+merged_df = merged_df.rename(columns = {"year_y": "LATEST_ACTIVITY"}).drop("year_x", axis = 1)
+
+# Subset the data for hospitals open in 2016 that were not open by 2019
+closed_hospitals = merged_df[merged_df["LATEST_ACTIVITY"] < 2019]
+
+# Save a df with the name, zip code, and last active year of the closed hospitals
+closed_hospitals_summary = closed_hospitals[["FAC_NAME", "ZIP_CD", "LATEST_ACTIVITY"]]
+
+# Print the amount of closed hospitals
+closed_hospitals_count = closed_hospitals_summary.shape[0]
+print(f"There are {closed_hospitals_count} hospitals that were open in 2016 but closed by 2019.")
+```
+
+2. 
+```{python}
+# Sort the closed hospitals by name and find the first 10
+first_10_closed_hospitals = closed_hospitals_summary.sort_values("FAC_NAME").head(10).reset_index()
+
+# Report the names and year of the first 10 closed hospitals
+first_10_closed_hospitals_summary = first_10_closed_hospitals[["FAC_NAME", "LATEST_ACTIVITY"]]
+
+print(first_10_closed_hospitals_summary)
+```
+
+3. 
+    a. 
+```{python}
+# Subset by active hospitals for each zip code and year
+active_hospitals_per_zip_and_year = df_all[df_all["PGM_TRMNTN_CD"] == 0].groupby(["ZIP_CD", "year"])
+
+# Count the number of active hospitals for each zip code and year and save the variable
+active_count = active_hospitals_per_zip_and_year.size().reset_index(name = "active_hospital_count")
+
+# Create an empty list for closed hospitals that could have been merged instead
+mergers = []
+
+# For each row in the df of closed hospitals
+for index, row in closed_hospitals_summary.iterrows():
+
+    # Subset the active hospitals per zip code and year for the correct row in the loop and the year of latest activity
+    current_count_subset = active_count[(active_count["ZIP_CD"] == row["ZIP_CD"]) & (active_count["year"] == row["LATEST_ACTIVITY"])]
+
+    # Count the total number of active hospitals for the current year
+    current_count = current_count_subset["active_hospital_count"].sum()
+
+    # Build the same active hospitals subset as above but for the year following the supposed hospital closure
+    next_year_count_subset = active_count[(active_count["ZIP_CD"] == row["ZIP_CD"]) & (active_count["year"] == row["LATEST_ACTIVITY"] + 1)]
+
+    # Count the total number of active hospitals for the next year
+    next_year_count = next_year_count_subset["active_hospital_count"].sum()
+
+    # Check which observations are in zip codes where there are at least as many hospitals in the year after closure
+    # and add their name to the mergers list
+    if current_count <= next_year_count:
+        mergers.append(row["FAC_NAME"])
+
+# Count the number of mergers
+number_of_mergers = len(mergers)
+
+print(f'There are {number_of_mergers} predicted mergers.')
+```
+
+    b.
+```{python}
+# Find which closed hospitals are not in the mergers list and save an updated df without those hospitals
+updated_closed_hospitals_summary = closed_hospitals_summary.loc[~closed_hospitals_summary["FAC_NAME"].isin(mergers)]
+
+# Count the amount of hospitals not in the mergers list
+number_updated_closed_hospitals = len(updated_closed_hospitals_summary)
+
+print(f'There are {number_updated_closed_hospitals} closed hospitals after adjusting for potential mergers.')
+```
+
+    c.
+```{python}
+# Sort the updated list of closed hospitals by name and print the first 10
+updated_first_10_closed_hospitals = updated_closed_hospitals_summary.sort_values(by="FAC_NAME").head(10)
+
+print(updated_first_10_closed_hospitals)
+```
+
+## Download Census zip code shapefile (10 pt) 
+
+1. 
+    a. 
+    DBF: Attribute data for each geometry. Rows are features and columns are attributes.
+    PRJ: Coordinate system and map projection information.
+    SHP: Geometric data of features. 
+    SHX: Index of geometric data.
+    XML: Metadata for the GIS used.
+
+    b. 
+    DBF: 6,275 kb
+    PRJ: 1 kb
+    SHP: 817,915 kb
+    SHX: 259 kb
+    XML: 16 kb
+2. 
+
+```{python}
+# Download data as geo df
+df_zip_all = gpd.read_file("C:/Users/jmull/Downloads/gz_2010_us_860_00_500k/gz_2010_us_860_00_500k.shp")
+
+# Subset data for all texas zip codes according to the PSETs linked wikipedia article
+texas_df = df_zip_all[df_zip_all["ZCTA5"].str.startswith(("75", "76", "77", "78", "79"))]
+
+# Convert 2016 zip codes to strings in the same format as the texas_df zip codes
+active_2016["ZIP_CD"] = active_2016["ZIP_CD"].astype(str).str.replace(".0", "", regex = False)
+
+# Subset the original short term 2016 df by the texas zip codes
+texas_2016_df = active_2016[active_2016["ZIP_CD"].isin(texas_df["ZCTA5"])]
+
+# Create a df with the amount of observations for each Texas zip code in 2016
+zip_code_count = texas_2016_df.groupby("ZIP_CD").size().reset_index(name = "count")
+
+# Rename column for consistency and to be able to merge
+zip_code_count.rename(columns = {"ZIP_CD": "ZCTA5"}, inplace = True)
+
+# Merge the two data frames
+texas_2016_merged = pd.merge(texas_df, zip_code_count, on = "ZCTA5", how = "left")
+
+# Fill in any missing count values with 0
+texas_2016_merged["count"].fillna(0, inplace=True)
+
+# Add an area column in km^2
+texas_2016_merged["area_km2"] = texas_2016_merged.area / (1000**2)
+
+# Plot the cholorpleth map
+texas_2016_merged.plot(column="count", legend=True)
+```
+
+## Calculate zip code’s distance to the nearest hospital (20 pts) (*)
+
+1. 
+```{python}
+# Create a new geo dataframe for the centroids
+zips_all_centroids = df_zip_all.copy()
+zips_all_centroids["centroids"] = df_zip_all["geometry"].centroid
+
+# Find the dimensions of the centroid geodataframe
+print(f"The dimensions of the GeoDataFrame are {zips_all_centroids.shape}")
+
+# Find the columns of the variables geo dataframe
+print(f"The columns of the GeoDataFrame are {zips_all_centroids.columns.tolist()}")
+```
+
+GEO_ID: identifier for a geographic object
+ZCTA5: five digit zip code
+NAME: Name of ZCTA
+LSAD: Type of geographic area (legal and statistical area description)
+CENSUSAREA: Area of the ZCTA in square miles
+geometry: geometric shape defining the boundaries
+centroids: geometric center of the ZCTA
+
+2. 
+```{python}
+# Find the zip codes in Texas, border states, and both
+zips_texas_centroids = zips_all_centroids[zips_all_centroids["ZCTA5"].str.startswith(("75", "76", "77", "78", "79"))]
+zips_borderstates_centroids = zips_all_centroids[zips_all_centroids["ZCTA5"].str.startswith(("70", "71", "72", "73", "74", "87", "88"))]
+zips_texas_borderstates_centroids = pd.concat([zips_texas_centroids, zips_borderstates_centroids], ignore_index=True)
+
+# Find the number of unique zip codes in Texas and in both Texas / bordder states.
+print(f"There are {zips_texas_centroids["ZCTA5"].nunique()} unique zip codes in Texas.")
+print(f"There are {zips_texas_borderstates_centroids["ZCTA5"].nunique()} unique zip codes in Texas and border states.")
+```
+
+3. 
+```{python}
+# Merge the centroids texas border states df and the zip code count df with the zip codes that overlap in both,
+# thus ensuring that our new df only has zip codes with at least one hospital.
+zips_withhospital_centroids = pd.merge(zips_texas_borderstates_centroids, zip_code_count, on='ZCTA5', how='inner')
+
+# Print the number of observations
+print(f"There are {zips_withhospital_centroids.shape[0]} zip codes with at least 1 active hospital in 2016.")
+```
+
+4. 
+    a.
+```{python}
+# Subset by the first 10 zip codes
+ten_zip_codes = zips_texas_centroids.head(10)
+
+# Reproject both GeoDataFrames 
+ten_zip_codes = ten_zip_codes.to_crs(epsg=3083)
+zips_withhospital_centroids = zips_withhospital_centroids.to_crs(epsg=3083)
+
+# Start the time to test how long procedure takes
+start_time = time.time()
+
+# Run a join to find the nearest hospital zip code for the first 10 codes
+joined_subset = gpd.sjoin_nearest(ten_zip_codes, zips_withhospital_centroids, how = "left", distance_col = "closest_hospital_distance")
+
+# Drop rows where GEO_ID_left and GEO_ID_right are the same
+joined_subset = joined_subset[joined_subset["GEO_ID_left"] != joined_subset["GEO_ID_right"]]
+
+# End the time once the procedure is done.
+end_time = time.time()
+
+# Calculate time it took
+ten_codes_time = round(end_time - start_time, 2)
+
+# Estimated time
+estimated_time = round((ten_codes_time/10) * zips_texas_centroids.shape[0], 2)
+
+# Find the amount of time the procedure took
+print(f"The procedure took {ten_codes_time} seconds.")
+
+# Find the amount of time it should take for the entire dataset
+print(f"The entire procedure should take {estimated_time} seconds.")
+```
+
+source: https://geopandas.org/en/v0.10.2/docs/reference/api/geopandas.sjoin_nearest.html
+source: "CHATGPT: I got the following warning. how can i fix my code to not get that warning? 
+UserWarning: Geometry is in a geographic CRS. Results from 'sjoin_nearest' are likely incorrect. 
+Use 'GeoSeries.to_crs()' to re-project geometries to a projected CRS before this operation.""
+source: https://epsg.io/3083
+
+    b.
+```{python}
+# Start the time to test how long procedure takes
+start_time = time.time()
+
+# Reproject both GeoDataFrames
+zips_texas_centroids = zips_texas_centroids.to_crs(epsg=3083)
+zips_withhospital_centroids = zips_withhospital_centroids.to_crs(epsg=3083)
+
+# Run a join to find the nearest hospital zip code for the first 10 codes
+joined_df = gpd.sjoin_nearest(zips_texas_centroids, zips_withhospital_centroids, how = "left", distance_col = "closest_hospital_distance")
+
+# Drop rows where GEO_ID_left and GEO_ID_right are the same
+joined_df = joined_df[joined_df["GEO_ID_left"] != joined_df["GEO_ID_right"]]
+
+# End the time once the procedure is done.
+end_time = time.time()
+
+# Calculate time it took
+full_time = round(end_time - start_time, 2)
+
+# Find the amount of time the procedure took
+print(f"The procedure took {full_time/60} minutes.")
+
+# Difference between full time and estimated time
+difference = round(abs(full_time - estimated_time), 2)
+
+# Find the difference with the estimation
+print(f"The difference between the full calculation and estimation is {difference} seconds.")
+```
+
+    c.
+```{python}
+# Open the file
+with open("C:/Users/jmull/Downloads/gz_2010_us_860_00_500k/gz_2010_us_860_00_500k.prj", "r") as file:
+    prj_contents = file.read()
+
+# Print to find the units
+print(prj_contents)
+
+# Multiply by 69.2 to convert to miles
+joined_df["closest_hospital_distance"] = joined_df["closest_hospital_distance"] * 69.2 
+```
+
+source: 
+ChatGPT "how to open prj file in pandas"
+https://sciencing.com/convert-degrees-latitude-miles-5744407.html
+
+5. 
+    a.
+It is still technically in degrees even though it is scaled by a mile multiplier (69.2).
+
+    b.
+```{python}
+#Calculate average distance and print
+avg_distance = round(joined_df["closest_hospital_distance"].mean(), 2)
+print(f"The average distance is {avg_distance}.")
+```
+The value does not make sense. There may be an error in the projection or calculation. It is too large.
+
+    c.
+
+    
+## Effects of closures on access in Texas (15 pts)
+
+1. 
+```{python}
+# Get the df with the closed hospitals after eliminating the margers, group them by zip code, and count how many closures per zip code
+zip_code_closures = updated_closed_hospitals_summary.groupby('ZIP_CD').size().reset_index(name='count_closures')
+
+# Sort the zip codes by number of closures
+zip_code_closures = zip_code_closures.sort_values(by='count_closures', ascending=False)
+
+print(zip_code_closures.head())
+```
+
+2. 
+
+3. 
+
+4. 
+
+## Reflecting on the exercise (10 pts) 
+
+1. 
+When identifying potential closures, we said that we can disregard zip codes where there was a closure but the hospital count
+is not decreasing, thus suggesting that the closure was actually a merger instead. This approach implicitly assumes that
+there are no other hospitals entering. It is totally possible for a hospital to close and new one to enter, thus keeping the
+hospital count at the same level without being a merger. Therefore, our estimate of the amount of truly closed hospitals
+may be flawed.
+
+To fix this, we can use another identifier to check if there are indeed new hospitals in the region. For example, we can
+use hospital names. If there was a closure and the number of hospitals remained the same or increased, then we can check 
+for any new hospital names to see if there was indeed a merger or if a new entrant joined. We can also try to do this for
+other unique identifiers like hospital codes. Basically, as long as we can check for the entrance of a unique identifier,
+we can produce a better guess as to whether there was a new entrant or a merger. 
+
+2. 
+Zip code level access to hospitals does not tell us much about the impact of the closure since different zip codes
+are composed of different demographics and needs. Moreover, we do not know much about the capacity of the hospital. 
+Therefore, it is especially difficult to know the impact. To fix this, it would be great to know hospital facts like
+the proportion of the zip code it serves and demographic facts like the average income of people in that zip code.
+Together, it would be easier to get a better picture of what the impacts of closure may truly be. 
